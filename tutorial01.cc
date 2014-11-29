@@ -157,7 +157,7 @@ int main(void) {
   GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
   // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+  glm::mat4 Projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
   // Camera matrix
   glm::mat4 View       = glm::lookAt(
       glm::vec3(4,3,3), // Camera is at (4,3,3), in World Space
@@ -177,7 +177,7 @@ int main(void) {
 
       -0.5f, -0.5f,  0.0f,
        0.5f, -0.5f,  0.0f,
-       0.0f, -0.5f,  0.0f,
+       0.0f, -1.5f,  0.0f,
   };
 
   GLuint vertexbuffer;
@@ -203,9 +203,7 @@ int main(void) {
 
     glBindVertexArray(VertexArrayID);
 
-    // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0,
-                 3);  // Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glDisableVertexAttribArray(0);
 
