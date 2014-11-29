@@ -1,10 +1,19 @@
 CXX = g++
 CXXFLAGS = -Wall -std=c++0x
-LDLIBS = -lglfw3 -lGLEW -lGLU -lGL -lX11 -lXxf86vm -lXrandr -lpthread -lXi -lXinerama -lXcursor -lm
+
+LDLIBS = -lglfw3 -lGLEW
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Linux)
+  LDLIBS += -lGLU -lGL 
+  LDLIBS += -lX11 -lXxf86vm -lXrandr -lpthread -lXi -lXinerama -lXcursor -lm
+endif
+ifeq ($(UNAME_S), Darwin)
+  LDLIBS += -framework OpenGL -framework GLUT -framework CoreFoundation -framework Foundation -framework IOKit -framework Quartz -framework AppKit
+endif
 
 OBJ_DIR = bin
-LIB_DIR = -L ~/Documents/glew/lib -L ~/Documents/glfw/src
-INC_DIR = -I ~/Documents/glew/include -I ~/Documents/glfw/include/GLFW -I ~/Documents/glm
+LIB_DIR = -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
+INC_DIR = -I ~/Documents/opengl/glew/include -I ~/Documents/opengl/glfw/include/GLFW -I ~/Documents/opengl/glm
 
 SOURCE = tutorial01.cc
 OBJECTS = ${SOURCE:%.cc=$(OBJ_DIR)/%.o}
