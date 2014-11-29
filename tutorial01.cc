@@ -135,7 +135,6 @@ int main(void) {
   printf ("Renderer: %s\n", renderer);
   printf ("OpenGL version supported %s\n", version);
 
-  printf("before glEnable\n");
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable (GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc (GL_LESS); // depth-testing interprets a smaller value as "closer"
@@ -153,143 +152,48 @@ int main(void) {
        0.0f,  1.0f,  0.0f,
   };
 
-  // // This will identify our vertex buffer
-  // GLuint vertexbuffer;
+  // This will identify our vertex buffer
+  GLuint vertexbuffer;
 
-  // // Generate 1 buffer, put the resulting identifier in vertexbuffer
-  // glGenBuffers(1, &vertexbuffer);
+  // Generate 1 buffer, put the resulting identifier in vertexbuffer
+  glGenBuffers(1, &vertexbuffer);
 
-  // printf("before glBindBuffer\n");
-  // // The following commands will talk about our 'vertexbuffer' buffer
-  // glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  // The following commands will talk about our 'vertexbuffer' buffer
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 
-  // // Give our vertices to OpenGL.
-  // glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data),
-  //              g_vertex_buffer_data, GL_STATIC_DRAW);
+  // Give our vertices to OpenGL.
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data),
+               g_vertex_buffer_data, GL_STATIC_DRAW);
 
-  static float points[] = {
-     0.0f,  0.5f,  0.0f,
-     0.5f, -0.5f,  0.0f,
-    -0.5f, -0.5f,  0.0f
-  };
-
-  GLuint vbo = 0;
-  glGenBuffers (1, &vbo);
-  printf("before glBindBuffer\n");
-  glBindBuffer (GL_ARRAY_BUFFER, vbo);
-  printf("before glBufferData\n");
-  glBufferData (GL_ARRAY_BUFFER, 9 * sizeof (float), points, GL_STATIC_DRAW);
-
-  printf("before glGenVertexArrays\n");
   GLuint vao = 0;
   glGenVertexArrays (1, &vao);
-  printf("before glBindVertexArray\n");
   glBindVertexArray (vao);
   glEnableVertexAttribArray (0);
-  printf("before glBindBuffer - 2\n");
-  glBindBuffer (GL_ARRAY_BUFFER, vbo);
-  printf("before glVertexAttribPointer\n");
+  glBindBuffer (GL_ARRAY_BUFFER, vertexbuffer);
   glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-  const char* vertex_shader =
-      "#version 400\n"
-      "in vec3 vp;"
-      "void main () {"
-      "  gl_Position = vec4 (vp, 1.0);"
-      "}";
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  const char* fragment_shader =
-      "#version 400\n"
-      "out vec4 frag_colour;"
-      "void main () {"
-      "  frag_colour = vec4 (0.5, 0.0, 0.5, 1.0);"
-      "}";
+  // Create and compile our GLSL program from the shaders
+  GLuint programID = LoadShaders("SimpleVertexShader.vertexshader",
+                                 "SimpleFragmentShader.fragmentshader");
+  do {
+    glUseProgram(programID);
+    glBindVertexArray(vao);
 
-  GLuint vs = glCreateShader (GL_VERTEX_SHADER);
-  glShaderSource (vs, 1, &vertex_shader, NULL);
-  glCompileShader (vs);
-  GLuint fs = glCreateShader (GL_FRAGMENT_SHADER);
-  glShaderSource (fs, 1, &fragment_shader, NULL);
-  glCompileShader (fs);
+    // Draw the triangle !
+    glDrawArrays(GL_TRIANGLES, 0,
+                 3);  // Starting from vertex 0; 3 vertices total -> 1 triangle
 
-  GLuint shader_programme = glCreateProgram ();
-  glAttachShader (shader_programme, fs);
-  glAttachShader (shader_programme, vs);
-  glLinkProgram (shader_programme);
+    glDisableVertexAttribArray(0);
 
-  while (!glfwWindowShouldClose (window)) {
-    // wipe the drawing surface clear
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram (shader_programme);
-    printf("before glBindVertexArray\n");
-    glBindVertexArray (vao);
-    // draw points 0-3 from the currently bound VAO with current in-use shader
-    glDrawArrays (GL_TRIANGLES, 0, 3);
-    // update other events like input handling 
-    glfwPollEvents ();
-    // put the stuff we've been drawing onto the display
-    glfwSwapBuffers (window);
-  }
+    // Swap buffers
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 
-//   // Create and compile our GLSL program from the shaders
-//   GLuint programID = LoadShaders("SimpleVertexShader.vertexshader",
-//                                  "SimpleFragmentShader.fragmentshader");
-//   do {
-//     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-//     glUseProgram(programID);
-
-//     // // 1rst attribute buffer : vertices
-//     // glEnableVertexAttribArray(0);
-//     // glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-//     // glVertexAttribPointer(0,  // attribute 0. No particular reason for 0, but
-//     //                           // must match the layout in the shader.
-//     //                       3,  // size
-//     //                       GL_FLOAT,  // type
-//     //                       GL_FALSE,  // normalized?
-//     //                       0,         // stride
-//     //                       (void*)0   // array buffer offset
-//     //                       );
-
-//     // GLuint vao = 0;
-//     // glGenVertexArrays(1, &vao);
-//     glBindVertexArray(vao);
-
-//     // Draw the triangle !
-//     glDrawArrays(GL_TRIANGLES, 0,
-//                  3);  // Starting from vertex 0; 3 vertices total -> 1 triangle
-
-//     glDisableVertexAttribArray(0);
-
-// /*
-//         float ratio;
-//         int width, height;
-//         glfwGetFramebufferSize(window, &width, &height);
-//         ratio = width / (float)height;
-//         glViewport(0, 0, width, height);
-//         glClear(GL_COLOR_BUFFER_BIT);
-//         glMatrixMode(GL_PROJECTION);
-//         glLoadIdentity();
-//         glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-//         glMatrixMode(GL_MODELVIEW);
-//         glLoadIdentity();
-//         glRotatef((float)glfwGetTime() * 50.f, 0.f, 0.f, 1.f);
-//         glBegin(GL_TRIANGLES);
-//         glColor3f(1.f, 0.f, 0.f);
-//         glVertex3f(-0.6f, -0.4f, 0.f);
-//         glColor3f(0.f, 1.f, 0.f);
-//         glVertex3f(0.6f, -0.4f, 0.f);
-//         glColor3f(0.f, 0.f, 1.f);
-//         glVertex3f(0.f, 0.6f, 0.f);
-//         glEnd();
-// */
-//     // Swap buffers
-//     glfwSwapBuffers(window);
-//     glfwPollEvents();
-
-//   }  // Check if the ESC key was pressed or the window was closed
-//   while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-//          glfwWindowShouldClose(window) == 0);
+  }  // Check if the ESC key was pressed or the window was closed
+  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+         glfwWindowShouldClose(window) == 0);
 
   // Close OpenGL window and terminate GLFW
   glfwTerminate();
