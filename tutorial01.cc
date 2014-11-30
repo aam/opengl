@@ -4,6 +4,8 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <random>
+#include <chrono>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -162,7 +164,7 @@ int main(void) {
   glm::mat4 Projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
   // Camera matrix
   glm::mat4 View       = glm::lookAt(
-      glm::vec3(4,3,3), // Camera is at (4,3,3), in World Space
+      glm::vec3(4,3,-3), // Camera is at (4,3,3), in World Space
       glm::vec3(0,0,0), // and looks at the origin
       glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
   );
@@ -171,15 +173,43 @@ int main(void) {
   // Our ModelViewProjection : multiplication of our 3 matrices
   glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
-  // An array of 3 vectors which represents 3 vertices
   static const GLfloat g_vertex_buffer_data[] = {
-      -0.5f, -0.5f,  0.0f,
-       0.5f, -0.5f,  0.0f,
-       0.0f,  0.5f,  0.0f,
-
-      -0.5f, -0.5f,  0.0f,
-       0.5f, -0.5f,  0.0f,
-       0.0f, -1.5f,  0.0f,
+      -1.0f,-1.0f,-1.0f, // triangle 1 : begin
+      -1.0f,-1.0f, 1.0f,
+      -1.0f, 1.0f, 1.0f, // triangle 1 : end
+      1.0f, 1.0f,-1.0f, // triangle 2 : begin
+      -1.0f,-1.0f,-1.0f,
+      -1.0f, 1.0f,-1.0f, // triangle 2 : end
+      1.0f,-1.0f, 1.0f,
+      -1.0f,-1.0f,-1.0f,
+      1.0f,-1.0f,-1.0f,
+      1.0f, 1.0f,-1.0f,
+      1.0f,-1.0f,-1.0f,
+      -1.0f,-1.0f,-1.0f,
+      -1.0f,-1.0f,-1.0f,
+      -1.0f, 1.0f, 1.0f,
+      -1.0f, 1.0f,-1.0f,
+      1.0f,-1.0f, 1.0f,
+      -1.0f,-1.0f, 1.0f,
+      -1.0f,-1.0f,-1.0f,
+      -1.0f, 1.0f, 1.0f,
+      -1.0f,-1.0f, 1.0f,
+      1.0f,-1.0f, 1.0f,
+      1.0f, 1.0f, 1.0f,
+      1.0f,-1.0f,-1.0f,
+      1.0f, 1.0f,-1.0f,
+      1.0f,-1.0f,-1.0f,
+      1.0f, 1.0f, 1.0f,
+      1.0f,-1.0f, 1.0f,
+      1.0f, 1.0f, 1.0f,
+      1.0f, 1.0f,-1.0f,
+      -1.0f, 1.0f,-1.0f,
+      1.0f, 1.0f, 1.0f,
+      -1.0f, 1.0f,-1.0f,
+      -1.0f, 1.0f, 1.0f,
+      1.0f, 1.0f, 1.0f,
+      -1.0f, 1.0f, 1.0f,
+      1.0f,-1.0f, 1.0f,
   };
 
   GLuint vertexbuffer;
@@ -187,25 +217,120 @@ int main(void) {
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data),
                g_vertex_buffer_data, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::default_random_engine generator(seed);
+  std::uniform_real_distribution<float> distribution(0, 1);
+  static GLfloat g_color_buffer_data[12*3*3];
+
+  GLuint colorbuffer;
+  glGenBuffers(1, &colorbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+  for (int v = 0; v < 12*3 ; v++){
+    g_color_buffer_data[3*v+0] = distribution(generator);
+    g_color_buffer_data[3*v+1] = distribution(generator);
+    g_color_buffer_data[3*v+2] = distribution(generator);
+  }
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data),
+               g_color_buffer_data, GL_STATIC_DRAW);
+//  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+  glm::mat4 ProjectionTri = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+  // Camera matrix
+  glm::mat4 ViewTri       = glm::lookAt(
+      glm::vec3(0,3,-3), // Camera is at (4,3,3), in World Space
+      glm::vec3(0,0,0), // and looks at the origin
+      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+  );
+  // Model matrix : an identity matrix (model will be at the origin)
+  glm::mat4 ModelTri      = glm::mat4(2.0f);  // Changes for each model !
+
+  glm::mat4 MVP_tri    = ProjectionTri * ViewTri * ModelTri; // Remember, matrix multiplication is the other way around
+
+  static const GLfloat g_vertex_buffer_data_tri[] = {
+      -0.5f, -0.5f, -2.0f,
+      0.5f, -0.5f, -2.0f,
+      0.0f, 0.5f, -2.0f,
+  };
+
+  GLuint vertexbuffer_tri;
+  glGenBuffers(1, &vertexbuffer_tri);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_tri);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data_tri),
+               g_vertex_buffer_data_tri, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  static GLfloat g_color_buffer_data_tri[1*3*3];
+
+  GLuint colorbuffer_tri;
+  glGenBuffers(1, &colorbuffer_tri);
+  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
+  for (int v = 0; v < 1*3 ; v++){
+    g_color_buffer_data_tri[3*v+0] = distribution(generator);
+    g_color_buffer_data_tri[3*v+1] = distribution(generator);
+    g_color_buffer_data_tri[3*v+2] = distribution(generator);
+  }
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data_tri),
+               g_color_buffer_data_tri, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   do {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(programID);
-    // Send our transformation to the currently bound shader,
-    // in the "MVP" uniform
-    // For each model you render, since the MVP will be different (at least the M part)
+
+    for (int v = 0; v < 12*3 ; v++){
+      g_color_buffer_data[3*v+0] = distribution(generator);
+      g_color_buffer_data[3*v+1] = distribution(generator);
+      g_color_buffer_data[3*v+2] = distribution(generator);
+    }
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data),
+                 g_color_buffer_data, GL_STATIC_DRAW);
+
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
-    glEnableVertexAttribArray (0);
-    glBindBuffer (GL_ARRAY_BUFFER, vertexbuffer);
-    glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
     glBindVertexArray(VertexArrayID);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
+    glDrawArrays(GL_TRIANGLES, 0, 12*3);
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+
+    for (int v = 0; v < 1*3 ; v++){
+      g_color_buffer_data_tri[3*v+0] = distribution(generator);
+      g_color_buffer_data_tri[3*v+1] = distribution(generator);
+      g_color_buffer_data_tri[3*v+2] = distribution(generator);
+    }
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data_tri),
+                 g_color_buffer_data_tri, GL_STATIC_DRAW);
+
+
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP_tri[0][0]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_tri);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindVertexArray(VertexArrayID);
+
+    glDrawArrays(GL_TRIANGLES, 0, 1*3);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+
 
     // Swap buffers
     glfwSwapBuffers(window);
