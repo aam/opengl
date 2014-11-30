@@ -282,6 +282,7 @@ int main(void) {
 
     glUseProgram(programID);
 
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
     for (int v = 0; v < 12*3 ; v++){
       g_color_buffer_data[3*v+0] = distribution(generator);
       g_color_buffer_data[3*v+1] = distribution(generator);
@@ -306,6 +307,7 @@ int main(void) {
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
     for (int v = 0; v < 1*3 ; v++){
       g_color_buffer_data_tri[3*v+0] = distribution(generator);
       g_color_buffer_data_tri[3*v+1] = distribution(generator);
@@ -313,7 +315,6 @@ int main(void) {
     }
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data_tri),
                  g_color_buffer_data_tri, GL_STATIC_DRAW);
-
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP_tri[0][0]);
 
