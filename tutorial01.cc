@@ -7,6 +7,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <sys/timeb.h>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -102,6 +103,55 @@ GLuint LoadShaders(const char* vertex_file_path,
   return ProgramID;
 }
 
+glm::vec3 ObjectCenter = glm::vec3( 0, 0, 0 );
+
+// Initial position : on +Z
+glm::vec3 position = glm::vec3( 4, 4, 3 );
+// Initial Field of View
+float initialFoV = 45.0f;
+
+glm::mat4 ViewMatrix;
+glm::mat4 ProjectionMatrix;
+
+int getMilliCount(){
+  timeb tb;
+  ftime(&tb);
+  int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+  return nCount;
+}
+
+int getMilliSpan(int nTimeStart){
+  int nSpan = getMilliCount() - nTimeStart;
+  if(nSpan < 0)
+    nSpan += 0x100000 * 1000;
+  return nSpan;
+}
+
+void computeMatricesFromInputs() {
+  static const long double startTime = getMilliCount();
+  const long double span = getMilliSpan(startTime)/10;
+
+  static long double pos = 0;
+  pos = span;
+
+  const double radius = 10.0;
+  const double height = 5.0;
+  position = ObjectCenter + glm::vec3(0.5 * radius * cos(pos/100),
+                                      2 * height * cos(pos/100),
+                                      0.3 * radius * sin(pos/100));
+
+  float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
+
+  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+  ProjectionMatrix = glm::perspective(FoV, 4.0f / 3.0f, 0.1f, 100.0f);
+  // Camera matrix
+  ViewMatrix = glm::lookAt(
+      position,
+      glm::vec3(0,0,0),
+      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+  );
+}
+
 int main(void) {
   glfwSetErrorCallback(error_callback);
 
@@ -146,6 +196,8 @@ int main(void) {
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable (GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc (GL_LESS); // depth-testing interprets a smaller value as "closer"
+  // Cull triangles which normal is not towards the camera
+  glEnable(GL_CULL_FACE);
 
   // Ensure we can capture the escape key being pressed below
   glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -162,19 +214,6 @@ int main(void) {
                                  "SimpleFragmentShader.fragmentshader");
 
   GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-
-  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 Projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-  // Camera matrix
-  glm::mat4 View       = glm::lookAt(
-      glm::vec3(3,-3,3), // Camera is at (4,3,3), in World Space
-      glm::vec3(0,0,0), // and looks at the origin
-      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-  );
-  // Model matrix : an identity matrix (model will be at the origin)
-  glm::mat4 Model      = glm::mat4(1.0f);  // Changes for each model !
-  // Our ModelViewProjection : multiplication of our 3 matrices
-  glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
   GLuint Texture = SOIL_load_OGL_texture(
       "uvtemplate.tga",
@@ -285,6 +324,13 @@ int main(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(programID);
+
+    // Compute the MVP matrix from keyboard and mouse input
+    computeMatricesFromInputs();
+    // glm::mat4 ProjectionMatrix = getProjectionMatrix();
+    // glm::mat4 ViewMatrix = getViewMatrix();
+    glm::mat4 ModelMatrix = glm::mat4(1.0);
+    glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
