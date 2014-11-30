@@ -223,7 +223,7 @@ int main(void) {
   );
 
   if (Texture == 0)
-    std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << "img_test.dds" << ")" << std::endl;
+    std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << "uvtemplate.tga" << ")" << std::endl;
 
   // Get a handle for our "myTextureSampler" uniform
   GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
