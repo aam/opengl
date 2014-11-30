@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -Wall -std=c++0x
 
-LDLIBS = -lglfw3 -lGLEW
+LDLIBS = -lglfw3 -lGLEW -lsoil2
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Linux)
   LDLIBS += -lGLU -lGL 
@@ -12,8 +12,8 @@ ifeq ($(UNAME_S), Darwin)
 endif
 
 OBJ_DIR = bin
-LIB_DIR = -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
-INC_DIR = -I ~/Documents/opengl/glew/include -I ~/Documents/opengl/glfw/include/GLFW -I ~/Documents/opengl/glm
+LIB_DIR = -L ~/Documents/opengl/soil2/lib/macosx -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
+INC_DIR = -I ~/Documents/opengl/soil2/src/SOIL2 -I ~/Documents/opengl/glew/include -I ~/Documents/opengl/glfw/include/GLFW -I ~/Documents/opengl/glm
 
 SOURCE = tutorial01.cc
 OBJECTS = ${SOURCE:%.cc=$(OBJ_DIR)/%.o}

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <random>
@@ -16,8 +17,10 @@ GLFWwindow* window;
 
 // Include GLM
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp> 
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
+
+#include <SOIL2.h>
 
 void error_callback(int error, const char* description) {
   fputs(description, stderr);
@@ -164,7 +167,7 @@ int main(void) {
   glm::mat4 Projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
   // Camera matrix
   glm::mat4 View       = glm::lookAt(
-      glm::vec3(4,3,-3), // Camera is at (4,3,3), in World Space
+      glm::vec3(3,-3,3), // Camera is at (4,3,3), in World Space
       glm::vec3(0,0,0), // and looks at the origin
       glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
   );
@@ -172,6 +175,20 @@ int main(void) {
   glm::mat4 Model      = glm::mat4(1.0f);  // Changes for each model !
   // Our ModelViewProjection : multiplication of our 3 matrices
   glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
+
+  GLuint Texture = SOIL_load_OGL_texture(
+      "uvtemplate.tga",
+      SOIL_LOAD_AUTO,
+      SOIL_CREATE_NEW_ID,
+      SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+  );
+
+  if (Texture == 0)
+    std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << "img_test.dds" << ")" << std::endl;
+
+  // Get a handle for our "myTextureSampler" uniform
+  GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
+
 
   static const GLfloat g_vertex_buffer_data[] = {
       -1.0f,-1.0f,-1.0f, // triangle 1 : begin
@@ -212,6 +229,46 @@ int main(void) {
       1.0f,-1.0f, 1.0f,
   };
 
+  // Two UV coordinatesfor each vertex. They were created withe Blender.
+  static const GLfloat g_uv_buffer_data[] = {
+    0.000059f, 1.0f-0.000004f,
+    0.000103f, 1.0f-0.336048f,
+    0.335973f, 1.0f-0.335903f,
+    1.000023f, 1.0f-0.000013f,
+    0.667979f, 1.0f-0.335851f,
+    0.999958f, 1.0f-0.336064f,
+    0.667979f, 1.0f-0.335851f,
+    0.336024f, 1.0f-0.671877f,
+    0.667969f, 1.0f-0.671889f,
+    1.000023f, 1.0f-0.000013f,
+    0.668104f, 1.0f-0.000013f,
+    0.667979f, 1.0f-0.335851f,
+    0.000059f, 1.0f-0.000004f,
+    0.335973f, 1.0f-0.335903f,
+    0.336098f, 1.0f-0.000071f,
+    0.667979f, 1.0f-0.335851f,
+    0.335973f, 1.0f-0.335903f,
+    0.336024f, 1.0f-0.671877f,
+    1.000004f, 1.0f-0.671847f,
+    0.999958f, 1.0f-0.336064f,
+    0.667979f, 1.0f-0.335851f,
+    0.668104f, 1.0f-0.000013f,
+    0.335973f, 1.0f-0.335903f,
+    0.667979f, 1.0f-0.335851f,
+    0.335973f, 1.0f-0.335903f,
+    0.668104f, 1.0f-0.000013f,
+    0.336098f, 1.0f-0.000071f,
+    0.000103f, 1.0f-0.336048f,
+    0.000004f, 1.0f-0.671870f,
+    0.336024f, 1.0f-0.671877f,
+    0.000103f, 1.0f-0.336048f,
+    0.336024f, 1.0f-0.671877f,
+    0.335973f, 1.0f-0.335903f,
+    0.667969f, 1.0f-0.671889f,
+    1.000004f, 1.0f-0.671847f,
+    0.667979f, 1.0f-0.335851f
+  };
+
   GLuint vertexbuffer;
   glGenBuffers(1, &vertexbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -219,119 +276,44 @@ int main(void) {
                g_vertex_buffer_data, GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-  std::default_random_engine generator(seed);
-  std::uniform_real_distribution<float> distribution(0, 1);
-  static GLfloat g_color_buffer_data[12*3*3];
-
-  GLuint colorbuffer;
-  glGenBuffers(1, &colorbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-  for (int v = 0; v < 12*3 ; v++){
-    g_color_buffer_data[3*v+0] = distribution(generator);
-    g_color_buffer_data[3*v+1] = distribution(generator);
-    g_color_buffer_data[3*v+2] = distribution(generator);
-  }
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data),
-               g_color_buffer_data, GL_STATIC_DRAW);
-//  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 ProjectionTri = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-  // Camera matrix
-  glm::mat4 ViewTri       = glm::lookAt(
-      glm::vec3(0,3,-3), // Camera is at (4,3,3), in World Space
-      glm::vec3(0,0,0), // and looks at the origin
-      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-  );
-  // Model matrix : an identity matrix (model will be at the origin)
-  glm::mat4 ModelTri      = glm::mat4(2.0f);  // Changes for each model !
-
-  glm::mat4 MVP_tri    = ProjectionTri * ViewTri * ModelTri; // Remember, matrix multiplication is the other way around
-
-  static const GLfloat g_vertex_buffer_data_tri[] = {
-      -0.5f, -0.5f, -2.0f,
-      0.5f, -0.5f, -2.0f,
-      0.0f, 0.5f, -2.0f,
-  };
-
-  GLuint vertexbuffer_tri;
-  glGenBuffers(1, &vertexbuffer_tri);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_tri);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data_tri),
-               g_vertex_buffer_data_tri, GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  static GLfloat g_color_buffer_data_tri[1*3*3];
-
-  GLuint colorbuffer_tri;
-  glGenBuffers(1, &colorbuffer_tri);
-  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
-  for (int v = 0; v < 1*3 ; v++){
-    g_color_buffer_data_tri[3*v+0] = distribution(generator);
-    g_color_buffer_data_tri[3*v+1] = distribution(generator);
-    g_color_buffer_data_tri[3*v+2] = distribution(generator);
-  }
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data_tri),
-               g_color_buffer_data_tri, GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  GLuint uvbuffer;
+  glGenBuffers(1, &uvbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
 
   do {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(programID);
 
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    for (int v = 0; v < 12*3 ; v++){
-      g_color_buffer_data[3*v+0] = distribution(generator);
-      g_color_buffer_data[3*v+1] = distribution(generator);
-      g_color_buffer_data[3*v+2] = distribution(generator);
-    }
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data),
-                 g_color_buffer_data, GL_STATIC_DRAW);
-
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+
+    // Bind our texture in Texture Unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, Texture);
+    // Set our "myTextureSampler" sampler to user Texture Unit 0
+    glUniform1i(TextureID, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+    // 2nd attribute buffer : UVs
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glVertexAttribPointer(
+      1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+      2,                                // size : U+V => 2
+      GL_FLOAT,                         // type
+      GL_FALSE,                         // normalized?
+      0,                                // stride
+      (void*)0                          // array buffer offset
+    );
     glBindVertexArray(VertexArrayID);
 
     glDrawArrays(GL_TRIANGLES, 0, 12*3);
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
-    for (int v = 0; v < 1*3 ; v++){
-      g_color_buffer_data_tri[3*v+0] = distribution(generator);
-      g_color_buffer_data_tri[3*v+1] = distribution(generator);
-      g_color_buffer_data_tri[3*v+2] = distribution(generator);
-    }
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data_tri),
-                 g_color_buffer_data_tri, GL_STATIC_DRAW);
-
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP_tri[0][0]);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_tri);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_tri);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glBindVertexArray(VertexArrayID);
-
-    glDrawArrays(GL_TRIANGLES, 0, 1*3);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(0);
-
 
     // Swap buffers
     glfwSwapBuffers(window);
