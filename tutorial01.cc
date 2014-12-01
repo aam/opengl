@@ -164,10 +164,10 @@ int main(void) {
   GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
   // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 Projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+  glm::mat4 Projection = glm::perspective(60.0f, 5.0f / 3.0f, 0.1f, 100.0f);
   // Camera matrix
   glm::mat4 View       = glm::lookAt(
-      glm::vec3(3,-3,3), // Camera is at (4,3,3), in World Space
+      glm::vec3(0,0,3), // Camera is at (4,3,3), in World Space
       glm::vec3(0,0,0), // and looks at the origin
       glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
   );
@@ -177,10 +177,10 @@ int main(void) {
   glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
   GLuint Texture = SOIL_load_OGL_texture(
-      "uvtemplate.tga",
+      "test.jpg",
       SOIL_LOAD_AUTO,
       SOIL_CREATE_NEW_ID,
-      SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+      SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
   );
 
   if (Texture == 0)
@@ -191,82 +191,22 @@ int main(void) {
 
 
   static const GLfloat g_vertex_buffer_data[] = {
-      -1.0f,-1.0f,-1.0f, // triangle 1 : begin
-      -1.0f,-1.0f, 1.0f,
-      -1.0f, 1.0f, 1.0f, // triangle 1 : end
-      1.0f, 1.0f,-1.0f, // triangle 2 : begin
-      -1.0f,-1.0f,-1.0f,
-      -1.0f, 1.0f,-1.0f, // triangle 2 : end
-      1.0f,-1.0f, 1.0f,
-      -1.0f,-1.0f,-1.0f,
-      1.0f,-1.0f,-1.0f,
-      1.0f, 1.0f,-1.0f,
-      1.0f,-1.0f,-1.0f,
-      -1.0f,-1.0f,-1.0f,
-      -1.0f,-1.0f,-1.0f,
-      -1.0f, 1.0f, 1.0f,
-      -1.0f, 1.0f,-1.0f,
-      1.0f,-1.0f, 1.0f,
-      -1.0f,-1.0f, 1.0f,
-      -1.0f,-1.0f,-1.0f,
-      -1.0f, 1.0f, 1.0f,
-      -1.0f,-1.0f, 1.0f,
-      1.0f,-1.0f, 1.0f,
-      1.0f, 1.0f, 1.0f,
-      1.0f,-1.0f,-1.0f,
-      1.0f, 1.0f,-1.0f,
-      1.0f,-1.0f,-1.0f,
-      1.0f, 1.0f, 1.0f,
-      1.0f,-1.0f, 1.0f,
-      1.0f, 1.0f, 1.0f,
-      1.0f, 1.0f,-1.0f,
-      -1.0f, 1.0f,-1.0f,
-      1.0f, 1.0f, 1.0f,
-      -1.0f, 1.0f,-1.0f,
-      -1.0f, 1.0f, 1.0f,
-      1.0f, 1.0f, 1.0f,
-      -1.0f, 1.0f, 1.0f,
-      1.0f,-1.0f, 1.0f,
+      -1.0f, 1.0f, 0.0f,
+       1.0f, 1.0f, 0.0f,
+       1.0f,-1.0f, 0.0f,
+       1.0f,-1.0f, 0.0f,
+      -1.0f,-1.0f, 0.0f,
+      -1.0f, 1.0f, 0.0f,
   };
 
   // Two UV coordinatesfor each vertex. They were created withe Blender.
   static const GLfloat g_uv_buffer_data[] = {
-    0.000059f, 1.0f-0.000004f,
-    0.000103f, 1.0f-0.336048f,
-    0.335973f, 1.0f-0.335903f,
-    1.000023f, 1.0f-0.000013f,
-    0.667979f, 1.0f-0.335851f,
-    0.999958f, 1.0f-0.336064f,
-    0.667979f, 1.0f-0.335851f,
-    0.336024f, 1.0f-0.671877f,
-    0.667969f, 1.0f-0.671889f,
-    1.000023f, 1.0f-0.000013f,
-    0.668104f, 1.0f-0.000013f,
-    0.667979f, 1.0f-0.335851f,
-    0.000059f, 1.0f-0.000004f,
-    0.335973f, 1.0f-0.335903f,
-    0.336098f, 1.0f-0.000071f,
-    0.667979f, 1.0f-0.335851f,
-    0.335973f, 1.0f-0.335903f,
-    0.336024f, 1.0f-0.671877f,
-    1.000004f, 1.0f-0.671847f,
-    0.999958f, 1.0f-0.336064f,
-    0.667979f, 1.0f-0.335851f,
-    0.668104f, 1.0f-0.000013f,
-    0.335973f, 1.0f-0.335903f,
-    0.667979f, 1.0f-0.335851f,
-    0.335973f, 1.0f-0.335903f,
-    0.668104f, 1.0f-0.000013f,
-    0.336098f, 1.0f-0.000071f,
-    0.000103f, 1.0f-0.336048f,
-    0.000004f, 1.0f-0.671870f,
-    0.336024f, 1.0f-0.671877f,
-    0.000103f, 1.0f-0.336048f,
-    0.336024f, 1.0f-0.671877f,
-    0.335973f, 1.0f-0.335903f,
-    0.667969f, 1.0f-0.671889f,
-    1.000004f, 1.0f-0.671847f,
-    0.667979f, 1.0f-0.335851f
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
   };
 
   GLuint vertexbuffer;
@@ -311,7 +251,7 @@ int main(void) {
     );
     glBindVertexArray(VertexArrayID);
 
-    glDrawArrays(GL_TRIANGLES, 0, 12*3);
+    glDrawArrays(GL_TRIANGLES, 0, 2*3);
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 
