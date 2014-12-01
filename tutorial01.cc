@@ -26,13 +26,14 @@ using namespace glm;
 #include <Halide.h>
 
 Halide::Image<int32_t> halideGenerate() {
-    Halide::Func gradient;
-    Halide::Var x, y;
-    Halide::Expr e = select(abs((y * y) - (x * 1024)) < 10*1024 , 0xff, 0x00);
-    Halide::Expr eup = select(abs(((1024-y) * (1024-y)) - (x * 1024)) < 10*1024 , 0xff, 0x00);
-    gradient(x, y) = select(e > 0 || eup > 0, e + eup, 0);
-    Halide::Image<int32_t> output = gradient.realize(1024, 1024);
-    return output;
+  Halide::Func gradient;
+  Halide::Var x, y;
+  Halide::Expr e = select(abs((y * y) - (x * 1024)) < 10 * 1024, 0xff, 0x00);
+  Halide::Expr eup = select(
+      abs(((1024 - y) * (1024 - y)) - (x * 1024)) < 10 * 1024, 0xff, 0x00);
+  gradient(x, y) = select(e > 0 || eup > 0, e + eup, 0);
+  Halide::Image<int32_t> output = gradient.realize(1024, 1024);
+  return output;
 }
 
 void error_callback(int error, const char* description) {
@@ -115,24 +116,23 @@ GLuint LoadShaders(const char* vertex_file_path,
   return ProgramID;
 }
 
-glm::vec3 ObjectCenter = glm::vec3( 0, 0, 0 );
-glm::vec3 position = glm::vec3( 0, 0, 1 );
+glm::vec3 ObjectCenter = glm::vec3(0, 0, 0);
+glm::vec3 position = glm::vec3(0, 0, 1);
 float FoV = 90.0f;
 
 glm::mat4 ViewMatrix;
 glm::mat4 ProjectionMatrix;
 
-int getMilliCount(){
+int getMilliCount() {
   timeb tb;
   ftime(&tb);
   int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
   return nCount;
 }
 
-int getMilliSpan(int nTimeStart){
+int getMilliSpan(int nTimeStart) {
   int nSpan = getMilliCount() - nTimeStart;
-  if(nSpan < 0)
-    nSpan += 0x100000 * 1000;
+  if (nSpan < 0) nSpan += 0x100000 * 1000;
   return nSpan;
 }
 
@@ -143,34 +143,29 @@ void OnScroll(GLFWwindow* window, double deltaX, double deltaY) {
 
 void computeMatricesFromInputs() {
   static const long double startTime = getMilliCount();
-  const long double span = getMilliSpan(startTime)/10;
+  const long double span = getMilliSpan(startTime) / 10;
 
   static long double pos = 0;
   pos = span;
 
-  position = ObjectCenter + glm::vec3(
-      cos(pos/1000) * cos(pos/1000) / 2,
-      0,
-      1);
+  position =
+      ObjectCenter + glm::vec3(cos(pos / 1000) * cos(pos / 1000) / 2, 0, 1);
 
   const float zoomSensitivity = -10.0f;
   float fieldOfView = FoV + zoomSensitivity * (float)gScrollY;
-  if(fieldOfView < 5.0f) fieldOfView = 5.0f;
-  if(fieldOfView > 130.0f) fieldOfView = 130.0f;
+  if (fieldOfView < 5.0f) fieldOfView = 5.0f;
+  if (fieldOfView > 130.0f) fieldOfView = 130.0f;
   FoV = fieldOfView;
   gScrollY = 0;
 
-  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit
+  // <-> 100 units
   ProjectionMatrix = glm::perspective(FoV, 3.0f / 3.0f, 0.1f, 100.0f);
   // Camera matrix
   ViewMatrix = glm::lookAt(
-      position,
-      glm::vec3(
-          cos(pos/100) * cos(pos/100) * 0.01,
-          0,
-          0),
-      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-  );
+      position, glm::vec3(cos(pos / 100) * cos(pos / 100) * 0.01, 0, 0),
+      glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+      );
 }
 
 int main(void) {
@@ -209,14 +204,14 @@ int main(void) {
   }
 
   // get version info
-  const GLubyte* renderer = glGetString (GL_RENDERER); // get renderer string
-  const GLubyte* version = glGetString (GL_VERSION); // version as a string
-  printf ("Renderer: %s\n", renderer);
-  printf ("OpenGL version supported %s\n", version);
+  const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
+  const GLubyte* version = glGetString(GL_VERSION);    // version as a string
+  printf("Renderer: %s\n", renderer);
+  printf("OpenGL version supported %s\n", version);
 
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
-  glEnable (GL_DEPTH_TEST); // enable depth-testing
-  glDepthFunc (GL_LESS); // depth-testing interprets a smaller value as "closer"
+  glEnable(GL_DEPTH_TEST);  // enable depth-testing
+  glDepthFunc(GL_LESS);  // depth-testing interprets a smaller value as "closer"
 
   // Ensure we can capture the escape key being pressed below
   glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -225,47 +220,14 @@ int main(void) {
   glClearColor(.0f, .0f, 0.4f, 0.0f);
 
   GLuint VertexArrayID = 0;
-  glGenVertexArrays (1, &VertexArrayID);
-  glBindVertexArray (VertexArrayID);
+  glGenVertexArrays(1, &VertexArrayID);
+  glBindVertexArray(VertexArrayID);
 
   // Create and compile our GLSL program from the shaders
   GLuint programID = LoadShaders("SimpleVertexShader.vertexshader",
                                  "SimpleFragmentShader.fragmentshader");
 
   GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-
-  // // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  // glm::mat4 Projection = glm::perspective(90.0f, 3.0f / 3.0f, 0.1f, 100.0f);
-  // // Camera matrix
-  // glm::mat4 View       = glm::lookAt(
-  //     glm::vec3(0,0,1), // Camera is at (4,3,3), in World Space
-  //     glm::vec3(0,0,0), // and looks at the origin
-  //     glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-  // );
-  // // Model matrix : an identity matrix (model will be at the origin)
-  // glm::mat4 Model      = glm::mat4(1.0f);  // Changes for each model !
-  // // Our ModelViewProjection : multiplication of our 3 matrices
-  // glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
-
-  // GLuint Texture = SOIL_load_OGL_texture(
-  //     "test.jpg",
-  //     SOIL_LOAD_AUTO,
-  //     SOIL_CREATE_NEW_ID,
-  //     SOIL_FLAG_MIPMAPS// | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-  // );
-
-
-  // int width = 1024;
-  // int height = 1024;
-  // int imageSize = width * height * 3;
-  // unsigned char* data = new unsigned char[imageSize];
-  // for (int i = 0; i < imageSize / 3; i++) {
-  //   int row = (i * 3) / width;
-  //   int col = (i * 3) - row * width;
-  //   data[i*3] = (col + row) / 8;
-  //   data[i*3+1] = 0;
-  //   data[i*3+2] = (col - row) / 8;
-  // }
 
   auto output = halideGenerate();
 
@@ -275,58 +237,59 @@ int main(void) {
   unsigned char* data = new unsigned char[imageSize];
   std::cout << "width=" << width << " height=" << height << std::endl;
 
-
   for (int j = 0; j < output.height(); j++) {
     for (int i = 0; i < output.width(); i++) {
-      // We can access a pixel of an Image object using similar
-      // syntax to defining and using functions.
       auto pos = j * output.height() + i;
-      data[pos * 3] = output(i,j); // (output(i, j) >> 24);
-      data[pos * 3 + 1] = 0; //output(i,j); //(output(i, j) >> 16) % 0xff;
-      data[pos * 3 + 2] = 0; //output(i,j); //(output(i, j) >>  8) % 0xff;
-//      std::cout << "output(" << i << "," << j << ") = " << output(i, j) << std::endl;
+      data[pos * 3] = output(i, j);
+      data[pos * 3 + 1] = 0;
+      data[pos * 3 + 2] = 0;
     }
   }
 
   // Create one OpenGL texture
   GLuint textureID;
   glGenTextures(1, &textureID);
-  // "Bind" the newly created texture : all future texture functions will modify this texture
+  // "Bind" the newly created texture : all future texture functions will modify
+  // this texture
   glBindTexture(GL_TEXTURE_2D, textureID);
   // Give the image to OpenGL
-  glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR,
+               GL_UNSIGNED_BYTE, data);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // When MINifying the image, use a LINEAR blend of two mipmaps, each filtered LINEARLY too
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  // When MINifying the image, use a LINEAR blend of two mipmaps, each filtered
+  // LINEARLY too
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
   // Generate mipmaps, by the way.
   glGenerateMipmap(GL_TEXTURE_2D);
 
   GLuint Texture = textureID;
 
   if (Texture == 0)
-    std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << "img_test.dds" << ")" << std::endl;
+    std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' ("
+              << "img_test.dds"
+              << ")" << std::endl;
 
   // Get a handle for our "myTextureSampler" uniform
-  GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
-
+  GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
   static const GLfloat g_vertex_buffer_data[] = {
-      -1.0f, 1.0f, 0.0f,
-       1.0f, 1.0f, 0.0f,
-       1.0f,-1.0f, 0.0f,
-       1.0f,-1.0f, 0.0f,
-      -1.0f,-1.0f, 0.0f,
-      -1.0f, 1.0f, 0.0f,
+      -1.0f, 1.0f,  0.0f,  // vertex
+      1.0f,  1.0f,  0.0f,  // vertex
+      1.0f,  -1.0f, 0.0f,  // vertex
+      1.0f,  -1.0f, 0.0f,  // vertex
+      -1.0f, -1.0f, 0.0f,  // vertex
+      -1.0f, 1.0f,  0.0f,  // vertex
   };
 
   // Two UV coordinatesfor each vertex. They were created withe Blender.
   static const GLfloat g_uv_buffer_data[] = {
-    0.0f, 0.0f,
-    1.0f, 0.0f,
-    1.0f, 1.0f,
-    1.0f, 1.0f,
-    0.0f, 1.0f,
-    0.0f, 0.0f,
+      0.0f, 0.0f,  // vertex
+      1.0f, 0.0f,  // vertex
+      1.0f, 1.0f,  // vertex
+      1.0f, 1.0f,  // vertex
+      0.0f, 1.0f,  // vertex
+      0.0f, 0.0f,  // vertex
   };
 
   GLuint vertexbuffer;
@@ -339,7 +302,8 @@ int main(void) {
   GLuint uvbuffer;
   glGenBuffers(1, &uvbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data,
+               GL_STATIC_DRAW);
 
   glfwSetScrollCallback(window, OnScroll);
 
@@ -348,10 +312,8 @@ int main(void) {
 
     glUseProgram(programID);
 
-   // Compute the MVP matrix from keyboard and mouse input
+    // Compute the MVP matrix from keyboard and mouse input
     computeMatricesFromInputs();
-    // glm::mat4 ProjectionMatrix = getProjectionMatrix();
-    // glm::mat4 ViewMatrix = getViewMatrix();
     glm::mat4 ModelMatrix = glm::mat4(1.0);
     glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
@@ -370,17 +332,17 @@ int main(void) {
     // 2nd attribute buffer : UVs
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    glVertexAttribPointer(
-      1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-      2,                                // size : U+V => 2
-      GL_FLOAT,                         // type
-      GL_FALSE,                         // normalized?
-      0,                                // stride
-      (void*)0                          // array buffer offset
-    );
+    glVertexAttribPointer(1,  // attribute. No particular reason for 1, but must
+                              // match the layout in the shader.
+                          2,  // size : U+V => 2
+                          GL_FLOAT,  // type
+                          GL_FALSE,  // normalized?
+                          0,         // stride
+                          (void*)0   // array buffer offset
+                          );
     glBindVertexArray(VertexArrayID);
 
-    glDrawArrays(GL_TRIANGLES, 0, 2*3);
+    glDrawArrays(GL_TRIANGLES, 0, 2 * 3);
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 
