@@ -7,6 +7,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <sys/timeb.h>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -102,6 +103,64 @@ GLuint LoadShaders(const char* vertex_file_path,
   return ProgramID;
 }
 
+glm::vec3 ObjectCenter = glm::vec3( 0, 0, 0 );
+glm::vec3 position = glm::vec3( 0, 0, 1 );
+float FoV = 90.0f;
+
+glm::mat4 ViewMatrix;
+glm::mat4 ProjectionMatrix;
+
+int getMilliCount(){
+  timeb tb;
+  ftime(&tb);
+  int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+  return nCount;
+}
+
+int getMilliSpan(int nTimeStart){
+  int nSpan = getMilliCount() - nTimeStart;
+  if(nSpan < 0)
+    nSpan += 0x100000 * 1000;
+  return nSpan;
+}
+
+double gScrollY = 0.0;
+void OnScroll(GLFWwindow* window, double deltaX, double deltaY) {
+  gScrollY += deltaY;
+}
+
+void computeMatricesFromInputs() {
+  static const long double startTime = getMilliCount();
+  const long double span = getMilliSpan(startTime)/10;
+
+  static long double pos = 0;
+  pos = span;
+
+  position = ObjectCenter + glm::vec3(
+      cos(pos/1000) * cos(pos/1000) / 2,
+      0,
+      1);
+
+  const float zoomSensitivity = -10.0f;
+  float fieldOfView = FoV + zoomSensitivity * (float)gScrollY;
+  if(fieldOfView < 5.0f) fieldOfView = 5.0f;
+  if(fieldOfView > 130.0f) fieldOfView = 130.0f;
+  FoV = fieldOfView;
+  gScrollY = 0;
+
+  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+  ProjectionMatrix = glm::perspective(FoV, 3.0f / 3.0f, 0.1f, 100.0f);
+  // Camera matrix
+  ViewMatrix = glm::lookAt(
+      position,
+      glm::vec3(
+          cos(pos/100) * cos(pos/100) * 0.01,
+          0,
+          0),
+      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+  );
+}
+
 int main(void) {
   glfwSetErrorCallback(error_callback);
 
@@ -163,24 +222,24 @@ int main(void) {
 
   GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
-  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 Projection = glm::perspective(90.0f, 3.0f / 3.0f, 0.1f, 100.0f);
-  // Camera matrix
-  glm::mat4 View       = glm::lookAt(
-      glm::vec3(0,0,1), // Camera is at (4,3,3), in World Space
-      glm::vec3(0,0,0), // and looks at the origin
-      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-  );
-  // Model matrix : an identity matrix (model will be at the origin)
-  glm::mat4 Model      = glm::mat4(1.0f);  // Changes for each model !
-  // Our ModelViewProjection : multiplication of our 3 matrices
-  glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
+  // // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+  // glm::mat4 Projection = glm::perspective(90.0f, 3.0f / 3.0f, 0.1f, 100.0f);
+  // // Camera matrix
+  // glm::mat4 View       = glm::lookAt(
+  //     glm::vec3(0,0,1), // Camera is at (4,3,3), in World Space
+  //     glm::vec3(0,0,0), // and looks at the origin
+  //     glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+  // );
+  // // Model matrix : an identity matrix (model will be at the origin)
+  // glm::mat4 Model      = glm::mat4(1.0f);  // Changes for each model !
+  // // Our ModelViewProjection : multiplication of our 3 matrices
+  // glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
   GLuint Texture = SOIL_load_OGL_texture(
       "test.jpg",
       SOIL_LOAD_AUTO,
       SOIL_CREATE_NEW_ID,
-      SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+      SOIL_FLAG_MIPMAPS// | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
   );
 
   if (Texture == 0)
@@ -221,10 +280,19 @@ int main(void) {
   glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
 
+  glfwSetScrollCallback(window, OnScroll);
+
   do {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(programID);
+
+   // Compute the MVP matrix from keyboard and mouse input
+    computeMatricesFromInputs();
+    // glm::mat4 ProjectionMatrix = getProjectionMatrix();
+    // glm::mat4 ViewMatrix = getViewMatrix();
+    glm::mat4 ModelMatrix = glm::mat4(1.0);
+    glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
