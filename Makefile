@@ -4,7 +4,7 @@ CXXFLAGS = -Wall -std=c++0x
 LDLIBS = -lglfw3 -lGLEW -lsoil2
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Linux)
-  LDLIBS += -lGLU -lGL 
+  LDLIBS += -lGLU -lGL
   LDLIBS += -lX11 -lXxf86vm -lXrandr -lpthread -lXi -lXinerama -lXcursor -lm
 endif
 ifeq ($(UNAME_S), Darwin)
@@ -12,7 +12,13 @@ ifeq ($(UNAME_S), Darwin)
 endif
 
 OBJ_DIR = bin
-LIB_DIR = -L ~/Documents/opengl/soil2/lib/macosx -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
+ifeq ($(UNAME_S), Linux)
+	LIB_DIR = -L ~/Documents/opengl/soil2/lib/linux
+endif
+ifeq ($(UNAME_S), Darwin)
+  LIB_DIR = -L ~/Documents/opengl/soil2/lib/macosx
+endif
+LIB_DIR += -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
 INC_DIR = -I ~/Documents/opengl/soil2/src/SOIL2 -I ~/Documents/opengl/glew/include -I ~/Documents/opengl/glfw/include/GLFW -I ~/Documents/opengl/glm
 
 SOURCE = tutorial01.cc
