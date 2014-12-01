@@ -6,11 +6,15 @@ in vec2 UV;
 // Ouput data
 out vec3 color;
 
+vec3 outputColor;
+
 // Values that stay constant for the whole mesh.
 uniform sampler2D myTextureSampler;
 
 void main(){
+  float lerpValue = gl_FragCoord.y / 500.0f;
+  outputColor = mix(vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.2f, 0.2f), lerpValue);
 
-    // Output color = color of the texture at the specified UV
-    color = texture( myTextureSampler, UV ).rgb;
+  // Output color = color of the texture at the specified UV
+  color = mix(texture( myTextureSampler, UV ).rgb, outputColor, 0.5f);
 }

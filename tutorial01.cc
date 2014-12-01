@@ -23,6 +23,18 @@ using namespace glm;
 
 #include <SOIL2.h>
 
+#include <Halide.h>
+
+Halide::Image<int32_t> halideGenerate() {
+    Halide::Func gradient;
+    Halide::Var x, y;
+    Halide::Expr e = select(abs((y * y) - (x * 1024)) < 10*1024 , 0xff, 0x00);
+    Halide::Expr eup = select(abs(((1024-y) * (1024-y)) - (x * 1024)) < 10*1024 , 0xff, 0x00);
+    gradient(x, y) = select(e > 0 || eup > 0, e + eup, 0);
+    Halide::Image<int32_t> output = gradient.realize(1024, 1024);
+    return output;
+}
+
 void error_callback(int error, const char* description) {
   fputs(description, stderr);
 }
@@ -235,12 +247,61 @@ int main(void) {
   // // Our ModelViewProjection : multiplication of our 3 matrices
   // glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
-  GLuint Texture = SOIL_load_OGL_texture(
-      "test.jpg",
-      SOIL_LOAD_AUTO,
-      SOIL_CREATE_NEW_ID,
-      SOIL_FLAG_MIPMAPS// | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-  );
+  // GLuint Texture = SOIL_load_OGL_texture(
+  //     "test.jpg",
+  //     SOIL_LOAD_AUTO,
+  //     SOIL_CREATE_NEW_ID,
+  //     SOIL_FLAG_MIPMAPS// | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+  // );
+
+
+  // int width = 1024;
+  // int height = 1024;
+  // int imageSize = width * height * 3;
+  // unsigned char* data = new unsigned char[imageSize];
+  // for (int i = 0; i < imageSize / 3; i++) {
+  //   int row = (i * 3) / width;
+  //   int col = (i * 3) - row * width;
+  //   data[i*3] = (col + row) / 8;
+  //   data[i*3+1] = 0;
+  //   data[i*3+2] = (col - row) / 8;
+  // }
+
+  auto output = halideGenerate();
+
+  int width = output.width();
+  int height = output.height();
+  int imageSize = width * height * 3;
+  unsigned char* data = new unsigned char[imageSize];
+  std::cout << "width=" << width << " height=" << height << std::endl;
+
+
+  for (int j = 0; j < output.height(); j++) {
+    for (int i = 0; i < output.width(); i++) {
+      // We can access a pixel of an Image object using similar
+      // syntax to defining and using functions.
+      auto pos = j * output.height() + i;
+      data[pos * 3] = output(i,j); // (output(i, j) >> 24);
+      data[pos * 3 + 1] = 0; //output(i,j); //(output(i, j) >> 16) % 0xff;
+      data[pos * 3 + 2] = 0; //output(i,j); //(output(i, j) >>  8) % 0xff;
+//      std::cout << "output(" << i << "," << j << ") = " << output(i, j) << std::endl;
+    }
+  }
+
+  // Create one OpenGL texture
+  GLuint textureID;
+  glGenTextures(1, &textureID);
+  // "Bind" the newly created texture : all future texture functions will modify this texture
+  glBindTexture(GL_TEXTURE_2D, textureID);
+  // Give the image to OpenGL
+  glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // When MINifying the image, use a LINEAR blend of two mipmaps, each filtered LINEARLY too
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  // Generate mipmaps, by the way.
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  GLuint Texture = textureID;
 
   if (Texture == 0)
     std::cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << "img_test.dds" << ")" << std::endl;

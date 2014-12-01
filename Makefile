@@ -21,6 +21,10 @@ endif
 LIB_DIR += -L ~/Documents/opengl/glew/lib -L ~/Documents/opengl/glfw/src
 INC_DIR = -I ~/Documents/opengl/soil2/src/SOIL2 -I ~/Documents/opengl/glew/include -I ~/Documents/opengl/glfw/include/GLFW -I ~/Documents/opengl/glm
 
+LDLIBS += -lHalide
+LIB_DIR += -L ~/Documents/Halide-llvm35/bin
+INC_DIR += -I ~/Documents/Halide-llvm35/include
+
 SOURCE = tutorial01.cc
 OBJECTS = ${SOURCE:%.cc=$(OBJ_DIR)/%.o}
 EXECUTABLE = tutorial01
